@@ -1,0 +1,113 @@
+# Bu araç @keyiflerolsun tarafından | @KekikAkademi için yazılmıştır.
+ name: CloudStream Derleyici
+ concurrency:
+   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+   cancel-in-progress: true
+ 
+ on:
+   workflow_dispatch:
+   push:
+     branches:
+       - master
+     paths-ignore:
+       - "**/*.md"
+       - "**/*.yml"
+       - "**/*.jpg"
+       - "**/*.png"
+       - "**/*.py"
+ 
+ jobs:
+   CloudStreamDerleyici:
+     runs-on: ubuntu-latest
+     steps:
+       - name: "'src' Depo Kontrolü"
+         uses: actions/checkout@v6
+         with:
+           path: "src"
+ 
+       - name: "'build' Depo Kontrolü"
+         uses: actions/checkout@v6
+         with:
+           ref: "builds"
+           path: "builds"
+ 
+       - name: Eski Derlemeleri Temizle
+         run: rm $GITHUB_WORKSPACE/builds/*.cs3 || true
+ 
+       - name: JDK 17 Ayarla
+         uses: actions/setup-java@v5
+         with:
+           distribution: temurin
+           java-version: 17
+
+       - name: Setup Gradle
+         uses: gradle/actions/setup-gradle@v5
+         with:
+           cache-read-only: false
+ 
+       - name: Eklentileri Derle
+         run: |
+           cd $GITHUB_WORKSPACE/src
+           chmod +x gradlew
+           ./gradlew make makePluginsJson -x :RecTV:make -x :RecTV:writeCacheEntry
+           cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
+           cp build/plugins.json $GITHUB_WORKSPACE/builds
+
+       - name: RecTV'yi Ekle
+         run: |
+           python3 - <<EOF
+           import json, os
+           
+           plugins_file = os.path.join(os.environ["GITHUB_WORKSPACE"], "builds", "plugins.json")
+           
+           rectv_entry = {
+               "url": "https://raw.githubusercontent.com/patr0nq/personal_cloudstream/builds/RecTV.cs3",
+               "status": 1,
+               "version": 113,
+               "name": "RecTV",
+               "internalName": "RecTV",
+               "authors": [
+                   "keyiflerolsun",
+                   "yusiqo",
+                   "inatchii",
+                   "JustRelaxable",
+                   "patr0n"
+               ],
+               "description": "RecTv APK, Türkiye'deki en popüler Çevrimiçi Medya Akış platformlarından biridir. Filmlerin, Canlı Sporların, Web Dizilerinin ve çok daha fazlasının keyfini ücretsiz çıkarın.",
+               "fileSize": 28846,
+               "repositoryUrl": "https://github.com/patr0nq/personal_cloudstream",
+               "language": "tr",
+               "tvTypes": ["Movie", "Live", "TvSeries"],
+               "iconUrl": "https://rectv.org.tr/wp-content/uploads/2024/11/rectv-modified.webp",
+               "apiVersion": 1,
+               "fileHash": "sha256-e04263fe93a131c4502fab15615735d6826580f99062f61dc2b062c0ce8976ab"
+           }
+           
+           try:
+               with open(plugins_file, "r", encoding="utf-8") as f:
+                   data = json.load(f)
+           except Exception:
+               data = []
+           
+           # eski RecTV girdilerini temizle
+           data = [p for p in data if p.get("internalName") != "RecTV"]
+           
+           # Yeni RecTV objesini ekle
+           data.append(rectv_entry)
+           
+           with open(plugins_file, "w", encoding="utf-8") as f:
+               json.dump(data, f, indent=4, ensure_ascii=False)
+           EOF
+
+       - name: '@KekikAkademi ifadesini değiştir'
+         run: |
+           sed -i 's/@KekikAkademi/@feroxxcs3/g' $GITHUB_WORKSPACE/builds/repo.json
+ 
+       - name: Derlemeleri Yükle
+         run: |
+           cd $GITHUB_WORKSPACE/builds
+           git config --local user.email "actions@github.com"
+           git config --local user.name "GitHub Actions"
+            git add .
+            git commit --amend -m "$GITHUB_SHA 'nın Derlenmesi" || exit 0   # eğer commit edilecek bir şey yoksa hata verme
+            git push --force 
