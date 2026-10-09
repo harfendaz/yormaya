@@ -1,0 +1,8 @@
+{
+    "name": "Turkish Providers Repository | @harfendaz",
+    "description": "Türkçe içerikli eklenti havuzu",
+    "manifestVersion": 1,
+    "pluginLists": [
+      "https://raw.githubusercontent.com/harfendaz/yormaya/builds/plugins.json"
+    ]
+}
