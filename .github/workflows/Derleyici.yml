@@ -55,8 +55,8 @@
 
        - name: 'repo.json Yayinla'
          run: |
-          cp $GITHUB_WORKSPACE/src/repo.json $GITHUB_WORKSPACE/builds/repo.json
-          
+           cp $GITHUB_WORKSPACE/src/repo.json $GITHUB_WORKSPACE/builds/repo.json
+
        - name: RecTV'yi Ekle
          run: |
            python3 - <<EOF
